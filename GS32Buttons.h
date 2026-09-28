@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <functional>
 #include <vector>
+#include <memory>
 
 // Класс ОДНОЙ кнопки
 class GS32Button {
@@ -53,7 +54,7 @@ public:
             _lastDebounceState = currentPressed;
         }
 
-        if ((now - _lastDebounceTime) > _debounceMs) {
+        if ((now - _lastDebounceTime) >= _debounceMs) {
             if (currentPressed != _isPressed) {
                 uint32_t duration = now - _lastStateChangeTime;
                 _isPressed = currentPressed;
@@ -118,26 +119,26 @@ class GS32Buttons {
 public:
     // Добавить кнопку и вернуть на неё ссылку для настройки
     GS32Button& add(uint8_t pin, bool pullup = true, uint32_t debounceMs = 30) {
-        _buttons.emplace_back(pin, pullup, debounceMs);
-        return _buttons.back();
+        _buttons.emplace_back(new GS32Button(pin, pullup, debounceMs));
+        return *_buttons.back();
     }
 
     // Инициализировать ВСЕ кнопки (вызывать в конце setup)
     void begin() {
         for (auto& btn : _buttons) {
-            btn.begin();
+            btn->begin();
         }
     }
 
     // Опрашивать ВСЕ кнопки (вызывать в loop)
     void tick() {
         for (auto& btn : _buttons) {
-            btn.tick();
+            btn->tick();
         }
     }
 
 private:
-    std::vector<GS32Button> _buttons;
+    std::vector<std::unique_ptr<GS32Button>> _buttons;
 };
 
 #endif
